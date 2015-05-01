@@ -34,14 +34,49 @@ import java.util.Random;
  */
 public class IDGeneratorServiceImpl implements IDGeneratorService
 {
+   public static class IntegerFormatter 
+   {
+      public String toHexString(int i)
+      {
+         return Integer.toHexString(i);
+      }
+   }
+
+   public static class J9IntegerFormatter extends IntegerFormatter
+   {
+      public String toHexString(int i)
+      {
+         final String hex = Integer.toHexString(i);
+         final int lastNul = hex.lastIndexOf('\u0000');
+         if (lastNul >= 0)
+         {
+            return hex.substring(lastNul + 1);
+         }
+         else
+         {
+            return hex;
+         }
+      }
+   }
+   
    /**
     * The logger
     */
    private static final Log LOG = ExoLogger.getLogger("exo.kernel.component.common.IDGeneratorServiceImpl");
 
    private static String hexServerIP_;
+   public static final IntegerFormatter integerFormatter;
    static
    {
+      /* A workaround for https://jira.exoplatform.org/browse/KER-308 */
+      if ("IBM Corporation".equals(System.getProperty("java.vendor"))
+            && "1.8.0".equals(System.getProperty("java.version")))
+      {
+         integerFormatter = new J9IntegerFormatter();
+      } else {
+         integerFormatter = new IntegerFormatter();
+      }
+      
       InetAddress localInetAddress = null;
       try
       {
@@ -54,6 +89,7 @@ public class IDGeneratorServiceImpl implements IDGeneratorService
       {
          LOG.fatal(uhe.getLocalizedMessage(), uhe);
       }
+      
    }
 
    private static final Random seeder_ = new SecureRandom();
@@ -121,7 +157,7 @@ public class IDGeneratorServiceImpl implements IDGeneratorService
 
    private static void addHexFormat(StringBuilder buffer, int i, int j)
    {
-      String s = Integer.toHexString(i);
+      String s = integerFormatter.toHexString(i);
       addPadHex(buffer, s, j);
       buffer.append(s);
    }
